@@ -1,0 +1,235 @@
+{
+  "info": {
+    "_postman_id": "7b09c34a-8338-4b64-9d8d-e3f5bd0be961",
+    "name": "ProfitX API",
+    "description": "Koleksion lokal per health, regjistrim dhe hyrje. Perdorni vetem databaze lokale dhe te dhena prove.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "testName", "value": "Postman Test User" },
+    { "key": "testEmail", "value": "" },
+    { "key": "samplePassword", "value": "DemoPass123" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health dhe databaza",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health",
+            "description": "Kontrollon qe API-ja pergjigjet dhe databaza eshte e lidhur."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Health kthen 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Databaza raportohet e lidhur', function () {",
+                  "  pm.expect(pm.response.json().database).to.eql('connected');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Regjistrimi",
+      "item": [
+        {
+          "name": "Regjistrim i suksesshem",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.variables.replaceIn('{{$guid}}');",
+                  "pm.collectionVariables.set('testEmail', `postman-${id}@example.test`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Regjistrimi kthen 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Pergjigjja nuk ekspozon hash-in e fjalekalimit', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.user).to.not.have.property('passwordHash');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{testName}}\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{samplePassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/auth/register",
+            "description": "Krijon perdorues prove. Email-i unik krijohet automatikisht para cdo ekzekutimi."
+          }
+        },
+        {
+          "name": "Regjistrim me fusha qe mungojne",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/auth/register",
+            "description": "Pret 400 dhe gabime per name, email dhe password."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validimi i regjistrimit kthen 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Pergjigjja liston fushat e pavlefshme', function () {",
+                  "  const body = pm.response.json();",
+                  "  const fields = body.errors.map((error) => error.field);",
+                  "  pm.expect(fields).to.include.members(['name', 'email', 'password']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Hyrja",
+      "item": [
+        {
+          "name": "Hyrje e suksesshme",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{samplePassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Ekzekuto pas Regjistrim i suksesshem ne te njejtin koleksion."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Hyrja kthen 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Pergjigjja permban token JWT', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.token).to.be.a('string').and.not.empty;",
+                  "  pm.collectionVariables.set('authToken', body.data.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hyrje me fusha qe mungojne",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Pret 400 dhe gabime per email dhe password."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validimi i hyrjes kthen 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Pergjigjja liston email dhe password', function () {",
+                  "  const body = pm.response.json();",
+                  "  const fields = body.errors.map((error) => error.field);",
+                  "  pm.expect(fields).to.include.members(['email', 'password']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hyrje me kredenciale te pasakta",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"KredencialGabim123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Ekzekuto pas regjistrimit prove; pret 401 dhe mesazh per kredenciale te pasakta."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Kredencialet e pasakta kthejne 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Pergjigjja nuk zbulon nese email-i ekziston', function () {",
+                  "  pm.expect(pm.response.json().message).to.eql('Email ose fjalekalim i pasakte');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
