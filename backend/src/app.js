@@ -4,8 +4,9 @@ const apiRoutes = require('./routes');
 const { notFound, errorHandler } = require('./middleware/error.middleware');
 
 const app = express();
+const frontendOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
 
-app.use(cors());
+app.use(cors({ origin: frontendOrigin }));
 app.use(express.json());
 
 app.use('/api', apiRoutes);

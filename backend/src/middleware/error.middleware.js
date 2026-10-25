@@ -5,9 +5,11 @@ function notFound(req, res, next) {
 }
 
 function errorHandler(err, req, res, next) {
-  const statusCode = err.statusCode || 500;
-  const message =
-    err instanceof ApiError
+  const isInvalidJson = err.type === 'entity.parse.failed';
+  const statusCode = isInvalidJson ? 400 : (err.statusCode || 500);
+  const message = isInvalidJson
+    ? 'Trupi i kerkeses duhet te jete JSON i vlefshem'
+    : err instanceof ApiError
       ? err.message
       : 'Gabim i brendshem i serverit';
 
@@ -15,11 +17,15 @@ function errorHandler(err, req, res, next) {
     console.error('Gabim i serverit:', err.message);
   }
 
-  res.status(statusCode).json({
+  const response = {
     success: false,
     statusCode,
     message,
-  });
+  };
+
+  if (err.errors) response.errors = err.errors;
+
+  res.status(statusCode).json(response);
 }
 
 module.exports = { notFound, errorHandler };
