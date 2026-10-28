@@ -1,0 +1,16 @@
+.party-page h2 { margin-top: 0; }
+.party-error { background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; }
+.party-form { background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #e5e7eb; }
+.party-form h3 { margin: 0 0 12px; font-size: 16px; }
+.party-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.party-grid input { padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+.party-actions { margin-top: 12px; display: flex; gap: 8px; }
+.party-page button { padding: 8px 14px; border: none; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
+.party-page button.secondary { background: #e5e7eb; color: #111827; }
+.party-page button.danger { background: #dc2626; }
+.party-page button:disabled { opacity: 0.6; cursor: default; }
+.party-table-wrap { overflow-x: auto; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb; }
+.party-table { width: 100%; border-collapse: collapse; }
+.party-table th, .party-table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+.party-row-actions { display: flex; gap: 6px; }
+.party-empty { color: #6b7280; }
