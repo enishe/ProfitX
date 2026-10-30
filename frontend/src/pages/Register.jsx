@@ -1,9 +1,12 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import api from "../api/api";
 import "../styles/auth.css";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
+const REDIRECT_DELAY_MS = 1500;
 
 function validate({ fullName, email, password }) {
   const errors = {};
@@ -12,12 +15,16 @@ function validate({ fullName, email, password }) {
     errors.fullName = "Emri i plotë është i detyrueshëm.";
   } else if (fullName.trim().length < 2) {
     errors.fullName = "Emri duhet të ketë të paktën 2 shkronja.";
+  } else if (fullName.trim().length > 100) {
+    errors.fullName = "Emri nuk mund të ketë më shumë se 100 karaktere.";
   }
 
   if (!email.trim()) {
     errors.email = "Email-i është i detyrueshëm.";
   } else if (!EMAIL_REGEX.test(email.trim())) {
     errors.email = "Shkruani një email të vlefshëm.";
+  } else if (email.trim().length > 255) {
+    errors.email = "Email-i nuk mund të ketë më shumë se 255 karaktere.";
   }
 
   if (!password) {
@@ -29,27 +36,64 @@ function validate({ fullName, email, password }) {
   return errors;
 }
 
-// Vend-ruajtës për API-në reale (POST /api/auth/register).
-// Nuk simulon regjistrim të suksesshëm: deri sa API-ja e Suelës të jetë gati,
-// kthen gabim të qartë. Lidhja reale bëhet kur pika të jetë gati.
-// eslint-disable-next-line no-unused-vars
 async function submitRegister(data) {
-  throw new Error("Lidhja me serverin nuk është gati ende.");
+  try {
+    const response = await api.post("/auth/register", {
+      name: data.fullName,
+      email: data.email,
+      password: data.password,
+    });
+
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      const serverErrors = error.response.data?.errors;
+
+      if (Array.isArray(serverErrors) && serverErrors.length > 0) {
+        throw new Error(serverErrors[0].message);
+      }
+
+      if (error.response.status === 409) {
+        throw new Error(
+          error.response.data?.message ||
+            "Ky email është regjistruar më parë."
+        );
+      }
+
+      throw new Error(
+        error.response.data?.message ||
+          "Regjistrimi dështoi. Provoni përsëri."
+      );
+    }
+
+    throw new Error(
+      "Serveri nuk është i arritshëm. Provoni përsëri më vonë."
+    );
+  }
 }
 
 function Register() {
+  const navigate = useNavigate();
+  const redirectTimer = useRef(null);
+
   const [values, setValues] = useState({
     fullName: "",
     email: "",
     password: "",
   });
+
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    return () => clearTimeout(redirectTimer.current);
+  }, []);
+
   const handleChange = (event) => {
     const { name, value } = event.target;
+
     setValues((prev) => ({ ...prev, [name]: value }));
     setFieldErrors((prev) => ({ ...prev, [name]: "" }));
     setFormError("");
@@ -58,25 +102,35 @@ function Register() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     setFormError("");
     setFormSuccess("");
 
     const errors = validate(values);
     setFieldErrors(errors);
+
     if (Object.keys(errors).length > 0) return;
 
     setLoading(true);
+
     try {
       await submitRegister({
         fullName: values.fullName.trim(),
         email: values.email.trim(),
         password: values.password,
       });
-      // Mesazhi i suksesit që do të vijë pas përgjigjes së serverit.
-      setFormSuccess("Llogaria u krijua me sukses. Tani mund të hyni.");
+
+      setFormSuccess(
+        "Llogaria u krijua me sukses. Po ju ridrejtojmë te hyrja..."
+      );
+
+      redirectTimer.current = setTimeout(() => {
+        navigate("/login", { replace: true });
+      }, REDIRECT_DELAY_MS);
     } catch (error) {
-      setFormError(error.message || "Regjistrimi dështoi. Provoni përsëri.");
-    } finally {
+      setFormError(
+        error.message || "Regjistrimi dështoi. Provoni përsëri."
+      );
       setLoading(false);
     }
   };
