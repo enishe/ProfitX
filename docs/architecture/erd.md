@@ -84,14 +84,20 @@ erDiagram
 - `CategoryType`: `INCOME`, `EXPENSE`.
 - `InvoiceStatus`: `DRAFT`, `SENT`, `PAID`, `OVERDUE`, `CANCELLED`.
 
-## Relationships and delete behavior
+## Transaction fields and relationships
+
+- `type` is required and uses `TransactionType` (`INCOME` or `EXPENSE`).
+- `amount` is required and stored as `Decimal(12, 2)`.
+- `occurredAt` is required and defaults to the current timestamp; `createdAt` records when the row was created.
+- `categoryId` is required and references one category. Deleting a referenced category is restricted.
+- `clientId` and `supplierId` are nullable optional references. Deleting the linked client or supplier sets that reference to `NULL`.
+- The application-level convention is to associate income with a client and expenses with a supplier. The current schema does not enforce that pairing as a database constraint.
+
+## Other relationships and delete behavior
 
 - `Client`, `Supplier`, `Category`, `Transaction`, and `Invoice` belong to one user. Deleting a user cascades to those owned records.
-- A transaction must have one category. Deleting a category referenced by transactions is restricted.
-- A transaction may reference a client or supplier. Deleting either sets the transaction's optional reference to `NULL`.
 - An invoice belongs to one client. Deleting a client with invoices is restricted so invoice history remains valid.
 - An invoice item belongs to one invoice. Deleting an invoice cascades to its items.
-- The application should associate an income transaction with a client and an expense transaction with a supplier.
 - `passwordHash` stores a password hash, never a plain-text password.
 - An invoice item's line total is calculated as `quantity × unitPrice`; it is not stored separately.
 - Financial reports should count transactions as income or expenses. An invoice alone is not a recorded payment.
