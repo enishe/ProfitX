@@ -6,6 +6,7 @@ const links = [
   { to: '/fatura', label: 'Fatura' },
   { to: '/klientet', label: 'Klientë' },
   { to: '/furnitoret', label: 'Furnitorë' },
+  { to: '/kategorite', label: 'Kategori' },
   { to: '/raportet', label: 'Raporte' },
 ]
 
