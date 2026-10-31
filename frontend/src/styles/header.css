@@ -1,0 +1,23 @@
+.header .header-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-user-name {
+  font-weight: 600;
+}
+
+.header-logout {
+  padding: 6px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f766e;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.header-logout:hover {
+  background: #f1f5f9;
+}
