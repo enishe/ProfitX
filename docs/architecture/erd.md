@@ -1,56 +1,108 @@
-\# FinTrack — Entity Relationship Diagram
-
-
+# ProfitX — Entity Relationship Diagram
 
 ```mermaid
-
 erDiagram
+    USER ||--o{ CLIENT : "owns (cascade)"
+    USER ||--o{ SUPPLIER : "owns (cascade)"
+    USER ||--o{ CATEGORY : "owns (cascade)"
+    USER ||--o{ TRANSACTION : "owns (cascade)"
+    USER ||--o{ INVOICE : "owns (cascade)"
 
-&#x20;   USER ||--o{ CLIENT : owns
+    CATEGORY ||--o{ TRANSACTION : "classifies (restrict)"
+    CLIENT o|--o{ TRANSACTION : "optional link (set null)"
+    SUPPLIER o|--o{ TRANSACTION : "optional link (set null)"
+    CLIENT ||--o{ INVOICE : "billed client (restrict)"
+    INVOICE ||--o{ INVOICE_ITEM : "contains (cascade)"
 
-&#x20;   USER ||--o{ SUPPLIER : owns
-
-&#x20;   USER ||--o{ CATEGORY : owns
-
-&#x20;   USER ||--o{ TRANSACTION : records
-
-&#x20;   USER ||--o{ INVOICE : creates
-
-
-
-&#x20;   CATEGORY ||--o{ TRANSACTION : classifies
-
-
-
-&#x20;   CLIENT ||--o{ INVOICE : receives
-
-&#x20;   INVOICE ||--o{ INVOICE\_ITEM : contains
-
-
-
-&#x20;   CLIENT o|--o{ TRANSACTION : optionally\_associated
-
-&#x20;   SUPPLIER o|--o{ TRANSACTION : optionally\_associated
-
+    USER {
+        uuid id PK
+        string name
+        string email UK
+        string passwordHash
+        datetime createdAt
+        datetime updatedAt
+    }
+    CLIENT {
+        uuid id PK
+        uuid userId FK
+        string name
+        string email
+        string phone
+        string address
+        datetime createdAt
+    }
+    SUPPLIER {
+        uuid id PK
+        uuid userId FK
+        string name
+        string email
+        string phone
+        string address
+        datetime createdAt
+    }
+    CATEGORY {
+        uuid id PK
+        uuid userId FK
+        string name
+        CategoryType type
+        datetime createdAt
+    }
+    TRANSACTION {
+        uuid id PK
+        uuid userId FK
+        uuid categoryId FK
+        uuid clientId FK
+        uuid supplierId FK
+        TransactionType type
+        decimal amount
+        string description
+        datetime occurredAt
+        datetime createdAt
+    }
+    INVOICE {
+        uuid id PK
+        uuid userId FK
+        uuid clientId FK
+        string invoiceNumber
+        InvoiceStatus status
+        date issueDate
+        date dueDate
+        datetime createdAt
+    }
+    INVOICE_ITEM {
+        uuid id PK
+        uuid invoiceId FK
+        string description
+        decimal quantity
+        decimal unitPrice
+    }
 ```
 
+## Enums
 
+- `TransactionType`: `INCOME`, `EXPENSE`.
+- `CategoryType`: `INCOME`, `EXPENSE`.
+- `InvoiceStatus`: `DRAFT`, `SENT`, `PAID`, `OVERDUE`, `CANCELLED`.
 
-\## Relationships and rules
+## Relationships and delete behavior
 
+- `Client`, `Supplier`, `Category`, `Transaction`, and `Invoice` belong to one user. Deleting a user cascades to those owned records.
+- A transaction must have one category. Deleting a category referenced by transactions is restricted.
+- A transaction may reference a client or supplier. Deleting either sets the transaction's optional reference to `NULL`.
+- An invoice belongs to one client. Deleting a client with invoices is restricted so invoice history remains valid.
+- An invoice item belongs to one invoice. Deleting an invoice cascades to its items.
+- The application should associate an income transaction with a client and an expense transaction with a supplier.
+- `passwordHash` stores a password hash, never a plain-text password.
+- An invoice item's line total is calculated as `quantity × unitPrice`; it is not stored separately.
+- Financial reports should count transactions as income or expenses. An invoice alone is not a recorded payment.
 
+## Indexes in `schema.prisma`
 
-\- Each client, supplier, category, transaction, and invoice belongs to one user.
+- `User.email` has a unique index for login and duplicate prevention.
+- `Client` and `Supplier` have unique compound indexes on `(userId, email)` and regular indexes on `(userId, name)`. These support per-user email checks and user-scoped name listing. Their leading `userId` columns also support user-scoped lookups.
+- `Category` has a unique compound index on `(userId, name, type)`.
+- `Transaction` has indexes on `(userId, occurredAt)` and `categoryId`.
+- `Invoice` has a unique compound index on `(userId, invoiceNumber)` and an index on `(clientId, issueDate)`.
+- `InvoiceItem` has an index on `invoiceId`.
 
-\- A transaction has one category. It may optionally be associated with a client or supplier.
-
-\- An invoice belongs to one client and can contain multiple invoice items.
-
-\- The application should associate an income transaction with a client and an expense transaction with a supplier.
-
-\- `passwordHash` stores a password hash, never a plain-text password.
-
-\- An invoice item's line total is calculated as `quantity × unitPrice`; it is not stored separately.
-
-\- Financial reports should count transactions as income or expenses. An invoice alone is not a recorded payment.
-
+The compound indexes beginning with `userId` also serve queries filtering by `userId`; separate single-column indexes would duplicate those index prefixes.
